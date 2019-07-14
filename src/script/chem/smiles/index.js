@@ -242,6 +242,15 @@ Smiles.prototype.saveMolecule = function (molecule, ignoreErrors) { // eslint-di
 
 	var firstComponent = true;
 
+	var rglabels = []
+	molecule.atoms.forEach(function (x) {
+		if (x.rglabel) {
+			rglabels.push(x.rglabel);
+		}
+	});
+
+	var expand_rglabels = rglabels.length > 1;
+
 	for (i = 0; i < walk.v_seq.length; i++) {
 		seqEl = walk.v_seq[i];
 		vIdx = seqEl.idx;
@@ -335,7 +344,7 @@ Smiles.prototype.saveMolecule = function (molecule, ignoreErrors) { // eslint-di
 			this.writtenComponents++;
 		}
 		if (writeAtom) {
-			this.writeAtom(molecule, vIdx, this.atoms[vIdx].aromatic, this.atoms[vIdx].lowercase, this.atoms[vIdx].chirality);
+			this.writeAtom(molecule, vIdx, this.atoms[vIdx].aromatic, this.atoms[vIdx].lowercase, this.atoms[vIdx].chirality, expand_rglabels);
 			this.writtenAtoms.push(seqEl.idx);
 		}
 	}
@@ -364,7 +373,7 @@ Smiles.prototype.writeCycleNumber = function (n) {
 		throw new Error('bad cycle number: ' + n);
 };
 
-Smiles.prototype.writeAtom = function (mol, idx, aromatic, lowercase, chirality) { // eslint-disable-line max-params, max-statements
+Smiles.prototype.writeAtom = function (mol, idx, aromatic, lowercase, chirality, expand_rglabels)  { // eslint-disable-line max-params, max-statements
 	var atom = mol.atoms.get(idx);
 	var needBrackets = false;
 	var hydro = -1;
@@ -400,6 +409,20 @@ Smiles.prototype.writeAtom = function (mol, idx, aromatic, lowercase, chirality)
 	}
 
 	if (atom.label == 'R' || atom.label == 'R#') {
+		if (expand_rglabels) {
+			let rglabel = '';
+			let value = 0;
+			for (var i = 0; i <= 32; i++) {
+				value = Math.pow(2, i);
+				if (value && atom.rglabel == value) {
+					rglabel = i + 1;
+					break;
+				}
+			}
+
+			this.smiles += '[*:' + rglabel + ']';
+			return;
+		} 
 		this.smiles += '[*]';
 		return;
 	}
